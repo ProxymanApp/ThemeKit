@@ -84,12 +84,17 @@ extension NSObject {
 
         // iterate classes
         for cls in classes {
-            if class_conformsToProtocol(cls, aProtocol) {
-                results.append(cls)
+
+            // Only check classes from Proxyman app or ThemeKit library
+            // For some reason, class_conformsToProtocol is crashed if cls is Apple's classes
+            let name = NSStringFromClass(cls)
+            if (name.hasPrefix("Proxyman") || name.hasPrefix("TK")) {
+                if class_conformsToProtocol(cls, aProtocol) {
+                    results.append(cls)
+                }
             }
         }
 
         return results
     }
-
 }
