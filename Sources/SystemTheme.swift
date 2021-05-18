@@ -49,14 +49,28 @@ public class SystemTheme: NSObject, Theme {
 
     /// Apple UI Theme has changed.
     @objc func appleInterfaceThemeDidChange(_ notification: Notification) {
-        isDarkTheme = SystemTheme.isAppleInterfaceThemeDarkOnUserDefaults()
-        SystemTheme.isAppleInterfaceThemeDark = isDarkTheme
-        NotificationCenter.default.post(name: .didChangeSystemTheme, object: nil)
+        // check after 100ms because OS might not change yet
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {[weak self] in
+            guard let strongSelf = self else { return }
+            strongSelf.isDarkTheme = SystemTheme.isAppleInterfaceThemeDarkOnUserDefaults()
+            SystemTheme.isAppleInterfaceThemeDark = strongSelf.isDarkTheme
+            NotificationCenter.default.post(name: .didChangeSystemTheme, object: nil)
+        }
     }
 
     /// Read Apple Interface Theme preference from User Defaults.
     private static func isAppleInterfaceThemeDarkOnUserDefaults() -> Bool {
-        return UserDefaults.standard.string(forKey: "AppleInterfaceStyle") != nil
+        // Fix Theme with Auto Switch Mode
+        // https://github.com/ruiaureliano/macOS-Appearance/issues/1#issuecomment-565610999
+        // https://github.com/ruiaureliano/macOS-Appearance/blob/27ef66d9f0e2df054bde5366c878e57575d5b939/Appearance/Source/AppDelegate.swift#L50-L52
+        if #available(OSX 10.15, *) {
+            let appearanceDescription = NSApplication.shared.effectiveAppearance.debugDescription.lowercased()
+            return appearanceDescription.contains("dark")
+        }
+        else {
+            // Default implementation from ThemeKit
+            return UserDefaults.standard.string(forKey: "AppleInterfaceStyle") != nil
+        }
     }
 
     override public var description: String {
